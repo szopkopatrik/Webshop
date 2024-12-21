@@ -5,6 +5,7 @@ import com.inn.webshop.com.inn.webshop.data.entity.RoleEntity;
 import com.inn.webshop.com.inn.webshop.data.entity.UserEntity;
 import com.inn.webshop.com.inn.webshop.data.repository.RoleRepository;
 import com.inn.webshop.com.inn.webshop.data.repository.UserRepository;
+import com.inn.webshop.com.inn.webshop.service.UserService;
 import com.inn.webshop.com.inn.webshop.utils.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -26,6 +28,9 @@ public class UserController {
 
     @Autowired
     RoleRepository roleRepository;
+
+    @Autowired
+    UserService service;
 
     @PreAuthorize("hasRole('admin') or hasRole('user')")
     @GetMapping("/{id}")
@@ -95,5 +100,11 @@ public class UserController {
 
         return ResponseEntity.ok(updatedUser);
     }
+
+    @PostMapping(path = "/changePassword")
+    public ResponseEntity<String> changePassword(@RequestBody Map<String, String> requestMap) {
+        return service.changePassword(requestMap);
+    }
+
 
 }

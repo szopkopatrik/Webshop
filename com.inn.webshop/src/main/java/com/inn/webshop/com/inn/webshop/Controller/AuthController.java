@@ -3,6 +3,7 @@ package com.inn.webshop.com.inn.webshop.Controller;
 import com.inn.webshop.com.inn.webshop.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,5 +29,8 @@ public class AuthController {
     public ResponseEntity<String> login(@RequestBody Map<String, String> requestMap) {
         return service.login(requestMap);
     }
+
+
+
 
 }

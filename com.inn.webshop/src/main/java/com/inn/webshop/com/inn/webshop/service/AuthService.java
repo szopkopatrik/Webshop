@@ -1,5 +1,6 @@
 package com.inn.webshop.com.inn.webshop.service;
 
+import com.google.common.base.Strings;
 import com.inn.webshop.com.inn.webshop.constents.Constants;
 import com.inn.webshop.com.inn.webshop.data.entity.RoleEntity;
 import com.inn.webshop.com.inn.webshop.data.entity.UserEntity;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +36,7 @@ public class AuthService {
     RoleRepository roleRepository;
     @Autowired
     JwtService jwtService;
+
 
 
     // Sign-up method
@@ -113,5 +116,10 @@ public class AuthService {
         user.setRole(role);
         return user;
     }
+
+
+
+
+
 
 }
