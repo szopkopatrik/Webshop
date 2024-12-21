@@ -42,9 +42,6 @@ public class UserEntity implements Serializable, UserDetails {
     @Column(name = "birth_date")
     private Date birthDate;
 
-    private boolean accountNonLocked;
-
-    private boolean enabled;
 
     @ManyToOne
     @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = false)
