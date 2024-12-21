@@ -28,4 +28,20 @@ public class BillEntity {
 
     @Column(name = "email")
     private String email;
+
+    @Column(name = "contactnumber")
+    private String contactNumber;
+
+    @Column(name = "paymentmethod")
+    private String paymentMethod;
+
+    @Column(name = "total")
+    private Integer total;
+
+    @Column(name = "productdetails", columnDefinition = "json")
+    private String productDetail;
+
+    @Column(name = "createdby")
+    private String createdBy;
+
 }
