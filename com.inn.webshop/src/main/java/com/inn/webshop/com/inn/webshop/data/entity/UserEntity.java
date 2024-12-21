@@ -1,18 +1,17 @@
 package com.inn.webshop.com.inn.webshop.data.entity;
 
+import com.inn.webshop.com.inn.webshop.data.repository.UserRepository;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
+import java.util.*;
 
-@NamedQuery(name = "User.findByEmail", query = "select u from UserEntity u where u.email=:email")
 
 @Data
 @Entity
@@ -43,38 +42,44 @@ public class UserEntity implements Serializable, UserDetails {
     @Column(name = "birth_date")
     private Date birthDate;
 
-    @Column(name = "role")
-    private String role;
+    private boolean accountNonLocked;
+
+    private boolean enabled;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = false)
+    private RoleEntity role;
 
     @Transient
     public Collection<GrantedAuthority> authorities = new ArrayList<>();
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public Collection<? extends GrantedAuthority> getAuthorities(){
         return authorities;
     }
 
+
     @Override
     public String getUsername() {
-        return null;
+        return email;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return false;
+        return true;
     }
 }

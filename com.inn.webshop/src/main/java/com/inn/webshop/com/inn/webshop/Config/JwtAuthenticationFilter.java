@@ -1,8 +1,7 @@
 package com.inn.webshop.com.inn.webshop.Config;
 
-import com.inn.webshop.com.inn.webshop.JWT.CustomerDetailsService;
-import com.inn.webshop.com.inn.webshop.JWT.JwtService;
-import com.inn.webshop.com.inn.webshop.ServiceImpl.service.UserService;
+import com.inn.webshop.com.inn.webshop.service.UserService;
+import com.inn.webshop.com.inn.webshop.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,14 +20,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtService jwtService;
     @Autowired
     private UserService userService;
-    @Autowired
-    private CustomerDetailsService customerDetailsService;
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -36,17 +33,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        if(StringUtils.isEmpty(authHeader) || !StringUtils.startsWith(authHeader,"Bearer ")){
+        if (StringUtils.isEmpty(authHeader) || !StringUtils.startsWith(authHeader, "Bearer ")) {
+            System.out.println("Authorization header is missing or does not start with Bearer.");
             filterChain.doFilter(request, response);
             return;
         }
         jwt = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(jwt);
-        if (StringUtils.isNotEmpty(userEmail)
-                && SecurityContextHolder.getContext().getAuthentication() == null){
+        System.out.println("Extracted JWT: " + jwt);
 
-            UserDetails userDetails = customerDetailsService.userDetailsService().loadUserByUsername(userEmail);
-            if(jwtService.validateToken(jwt, userDetails)){
+        userEmail = jwtService.extractUsername(jwt);
+        System.out.println("Extracted username from JWT: " + userEmail);
+
+        if (StringUtils.isNotEmpty(userEmail) && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userService.userDetailsService().loadUserByUsername(userEmail);
+            System.out.println("Loaded user details: " + userDetails.getUsername());
+
+            if (jwtService.validateToken(jwt, userDetails)) {
+                System.out.println("JWT is valid for user: " + userDetails.getUsername());
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
@@ -54,8 +57,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 context.setAuthentication(authToken);
                 SecurityContextHolder.setContext(context);
+            } else {
+                System.out.println("JWT is invalid.");
             }
         }
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
     }
 }

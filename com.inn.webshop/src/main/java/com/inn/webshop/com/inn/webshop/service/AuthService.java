@@ -1,17 +1,17 @@
-package com.inn.webshop.com.inn.webshop.ServiceImpl;
+package com.inn.webshop.com.inn.webshop.service;
 
-import com.inn.webshop.com.inn.webshop.JWT.JwtService;
-import com.inn.webshop.com.inn.webshop.ServiceImpl.service.UserService;
 import com.inn.webshop.com.inn.webshop.constents.Constants;
+import com.inn.webshop.com.inn.webshop.data.entity.RoleEntity;
 import com.inn.webshop.com.inn.webshop.data.entity.UserEntity;
+import com.inn.webshop.com.inn.webshop.data.repository.RoleRepository;
 import com.inn.webshop.com.inn.webshop.data.repository.UserRepository;
 import com.inn.webshop.com.inn.webshop.utils.Utils;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,38 +19,36 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.Objects;
 
-@Slf4j
 @Service
-public class UserServiceImpl implements UserService {
+public class AuthService {
 
     @Autowired
     UserRepository userRepository;
-
     @Autowired
     @Lazy
     PasswordEncoder encoder;
-
+    @Autowired
+    @Lazy
+    AuthenticationManager manager;
+    @Autowired
+    RoleRepository roleRepository;
     @Autowired
     JwtService jwtService;
 
-    @Autowired
-    @Lazy
-    private AuthenticationManager manager;
 
-    @Override
+    // Sign-up method
     public ResponseEntity<String> signUp(Map<String, String> requestMap) {
-        log.info("Inside signup {}", requestMap);
         try {
             if (validateSignUp(requestMap)) {
-                UserEntity userEntity = userRepository.findByEmail(requestMap.get("email"));
+                UserEntity userEntity = userRepository.findByEmailAddress(requestMap.get("email"));
                 if (Objects.isNull(userEntity)) {
-                    // Saving the user in the database
+                    // Save user to database
                     UserEntity savedUser = userRepository.save(getUserFromMap(requestMap));
 
-                    // Generate the token after saving the user
-                    String token = jwtService.generateToken(savedUser, savedUser.getEmail(), savedUser.getRole());
+                    // Generate a JWT token for the user
+                    String token = jwtService.generateToken(savedUser, savedUser.getId(), savedUser.getRole());
 
-                    // Returning success message along with the token
+                    // Return success response with the token
                     return Utils.getResponseEntity("Successfully Registered. Token: " + token, HttpStatus.OK);
                 } else {
                     return Utils.getResponseEntity("Email already exists.", HttpStatus.BAD_REQUEST);
@@ -60,75 +58,60 @@ public class UserServiceImpl implements UserService {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
+            return Utils.getResponseEntity(Constants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return Utils.getResponseEntity(Constants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @Override
+
     public ResponseEntity<String> login(Map<String, String> requestMap) {
         try {
             String email = requestMap.get("email");
             String password = requestMap.get("password");
+            System.out.println("Attempting login for email: " + email);
 
-            // Authenticate the user
             manager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
 
-            // Find user by email
-            var user = userRepository.findByEmail(email);
-
-            if (Objects.isNull(user)) {
+            UserEntity user = userRepository.findByEmailAddress(email);
+            if (user == null) {
+                System.out.println("User not found for email: " + email);
                 return Utils.getResponseEntity("User not found", HttpStatus.BAD_REQUEST);
             }
 
-            // Generate the JWT token
-            String token = jwtService.generateToken(user, user.getEmail(), user.getRole());
+            if (!user.isAccountNonLocked()) {
+                System.out.println("User account is locked: " + email);
+                return Utils.getResponseEntity("Account is locked", HttpStatus.FORBIDDEN);
+            }
 
-            // Return the response with the token
+            String token = jwtService.generateToken(user, user.getId(), user.getRole());
+            System.out.println("Generated token for user: " + email);
+
             return Utils.getResponseEntity("Login successful. Token: " + token, HttpStatus.OK);
+
+        } catch (BadCredentialsException ex) {
+            System.out.println("Invalid credentials for email: " + requestMap.get("email"));
+            return Utils.getResponseEntity("Invalid credentials", HttpStatus.UNAUTHORIZED);
         } catch (Exception ex) {
-            return Utils.getResponseEntity("Invalid credentials or something went wrong", HttpStatus.UNAUTHORIZED);
+            System.out.println("Unexpected error during login: " + ex.getMessage());
+            return Utils.getResponseEntity("Something went wrong. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-        @Override
-        public ResponseEntity<String> login(LoginDto dto) {
-            try {
-                // Authenticate the user using UsernamePasswordAuthenticationToken
-                manager.authenticate(new UsernamePasswordAuthenticationToken(dto.getEmailAddress(), dto.getPassword()));
-
-                // Find user by email
-                var user = userRepository.findByEmail(dto.getEmailAddress());
-
-                // Check if the user exists
-                if (Objects.isNull(user)) {
-                    return Utils.getResponseEntity("User not found", HttpStatus.BAD_REQUEST);
-                }
-
-                // Generate the JWT token
-                String token = jwtService.generateToken(user, user.getEmail(), user.getRole());
-
-                // Return the response with the token
-                return Utils.getResponseEntity("Login successful. Token:  " + token, HttpStatus.OK);
-            } catch (Exception ex) {
-                // Handle exceptions (e.g., invalid credentials or any other error)
-                return Utils.getResponseEntity("Invalid credentials or something went wrong", HttpStatus.UNAUTHORIZED);
-            }
-        }
-
 
     private boolean validateSignUp(Map<String, String> requestMap) {
         return requestMap.containsKey("name") && requestMap.containsKey("contactNumber")
                 && requestMap.containsKey("email") && requestMap.containsKey("password");
     }
 
+
     private UserEntity getUserFromMap(Map<String, String> requestMap) {
+        RoleEntity role = roleRepository.findById(2).orElseThrow(() -> new RuntimeException("Role not found"));
         UserEntity user = new UserEntity();
         user.setName(requestMap.get("name"));
         user.setContactNumber(requestMap.get("contactNumber"));
         user.setEmail(requestMap.get("email"));
+        user.getName();
         user.setPassword(encoder.encode(requestMap.get("password")));  // Encrypting password
-        user.setRole("user");
+        user.setRole(role);
         return user;
     }
+
 }
